@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include "Chrono.h"
-#include "MEDIC_Comms.h"
+#include "MEDIC_Comms/MEDIC_Comms.h"
 
 const char version[6] = "V0.1";
 
@@ -25,6 +25,7 @@ void setup() {
   communicator.connectOnRequestSettingsFunction(fillSettings);
   communicator.connectSetSettingFunction(setSettings);
   communicator.connectOnRequestStatusFunction(fillStatus);
+  communicator.connectOnResetFunction(resetrecords);
   communicator.begin();
 }
 
@@ -144,11 +145,13 @@ void resetDPSReconrds() {
 }
 
 void resetrecords() {
+  Serial.print("reset 2");
   maxMPS = -1;
   minMPS = -1;
   memset(previousMPS, 0, sizeof(previousMPS));
   currentPreviousMPSIndex = 0;
   maxDPS = -1.;
+  resetDPSReconrds();
 }
 
 void printStats() {

@@ -93,7 +93,8 @@ enum mode {
 	IDENTIFY,	// to check if a device is in the network
 	STATUS,		// to get a status form the device
 	GET_SETTINGS,	// to get the settings from the module
-	SET_SETTINGS	// to put the unit in a mode to accept new settings
+	SET_SETTINGS,	// to put the unit in a mode to accept new settings
+	RESET  // Set the unit to a clean state
 };
 
 struct SendMessageStruct {
@@ -145,6 +146,8 @@ class MEDIC_CONNTROLLER: public MEDIC {
 	void setPowerSettings();
     void setFireControlSettings();
     void setChronoSettings();
+
+	void resetUnit(int targetAddress);
 	
 	IdentifyStatusStruct identifyStatus;
 
@@ -170,6 +173,7 @@ class MEDIC_RECEIVER: public MEDIC {
 		void connectOnRequestStatusFunction(void (*funct)());
 		void connectOnRequestIdentifyFunction(void (*funct)());
 		void connectOnRequestSettingsFunction(void (*funct)());
+		void connectOnResetFunction(void (*funct)());
 		
 		virtual void onReceiveHandler(int numBytesReceived);
 		virtual void onRequestHandler();
@@ -183,6 +187,7 @@ class MEDIC_RECEIVER: public MEDIC {
 		void(*_onRequestStatusFunction)();
 		void(*_onRequestIdentifyFunction)();
 		void(*_onRequestSettingsFunction)();
+		void(*_onResetFunction)();
 };
 
 class MEDIC_POWER_BOARD_RECEIVER: public MEDIC_RECEIVER {

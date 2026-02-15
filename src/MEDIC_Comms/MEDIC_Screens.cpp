@@ -7,11 +7,10 @@
 #include "FireControl/FireControlStructsEnums.h"
 
 
-Screen::Screen(Adafruit_SSD1306 screen_obj, MEDIC_CONNTROLLER *controller) {
+Screen::Screen(Adafruit_SSD1306 screen_obj) {
     _screen_obj = screen_obj;
     _width = _screen_obj.width();
     _height = _screen_obj.height();
-    _controller = *controller;
 }
 
 void Screen::drawTestPattern(void) {
@@ -142,22 +141,23 @@ void Chrono_Screen::drawBackgrond() {
     _screen_obj.display();
 }
 
-void Chrono_Screen::drawInfo() {
+void Chrono_Screen::drawInfo(float lastFPS, float maxFPS, float minFPS, float lastDPS, float maxDPS) {
     _screen_obj.setTextColor(SSD1306_WHITE, SSD1306_BLACK);  // init text settings
     _screen_obj.setTextSize(1);
 
     _screen_obj.setCursor(75, 6);
-    _screen_obj.print(_controller.chronoStatus.lastFPS, 1);
+    _screen_obj.print(lastFPS, 1);
+    Serial.println(lastFPS);
 
     _screen_obj.setCursor(27, 35);
-    _screen_obj.print(_controller.chronoStatus.maxFPS, 1);
+    _screen_obj.print(maxFPS, 1);
     _screen_obj.setCursor(27, 51);
-    _screen_obj.print(_controller.chronoStatus.minFPS, 1);
+    _screen_obj.print(minFPS, 1);
 
     _screen_obj.setCursor(96, 35);
-    _screen_obj.print(_controller.chronoStatus.lastDPS, 1);
+    _screen_obj.print(lastDPS, 1);
     _screen_obj.setCursor(91, 51);
-    _screen_obj.print(_controller.chronoStatus.maxDPS, 1);
+    _screen_obj.print(maxDPS, 1);
 
     _screen_obj.display();
 }
@@ -190,20 +190,20 @@ void Fire_Control_Screen::drawBackgrond() {
     _screen_obj.display();
 }
 
-void Fire_Control_Screen::drawInfo() {
+void Fire_Control_Screen::drawInfo(int selectableFireModes[3], int selectableBurstAmounts[3]) {
     _screen_obj.setCursor(15, 20);
-    _screen_obj.print(fireModeStr[_controller.fireControlSettings.selectableFireModes[0]]);
+    _screen_obj.print(fireModeStr[selectableFireModes[0]]);
     _screen_obj.setCursor(15, 36);
-    _screen_obj.print(fireModeStr[_controller.fireControlSettings.selectableFireModes[1]]);
+    _screen_obj.print(fireModeStr[selectableFireModes[1]]);
     _screen_obj.setCursor(15, 52);
-    _screen_obj.print(fireModeStr[_controller.fireControlSettings.selectableFireModes[2]]);
+    _screen_obj.print(fireModeStr[selectableFireModes[2]]);
 
     _screen_obj.setCursor(63, 20);
-    _screen_obj.print(_controller.fireControlSettings.selectableBurstAmounts[0], 1);
+    _screen_obj.print(selectableBurstAmounts[0], 1);
     _screen_obj.setCursor(63, 36);
-    _screen_obj.print(_controller.fireControlSettings.selectableBurstAmounts[1], 1);
+    _screen_obj.print(selectableBurstAmounts[1], 1);
     _screen_obj.setCursor(63, 52);
-    _screen_obj.print(_controller.fireControlSettings.selectableBurstAmounts[2], 1);
+    _screen_obj.print(selectableBurstAmounts[2], 1);
 
     _screen_obj.display();
 }

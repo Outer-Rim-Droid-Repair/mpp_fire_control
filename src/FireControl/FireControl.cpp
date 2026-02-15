@@ -2,7 +2,7 @@
 #include <DigitalIO.h>
 
 #include "FireControl.h"
-#include "MEDIC_Comms.h"
+#include "MEDIC_Comms/MEDIC_Comms.h"
 
 const char version[6] = "V0.1";
 
@@ -67,6 +67,7 @@ void loop() {
         run_motor();
         if (!waitTillSensorChangeToValue(CLOSED_BREACH)) {
           Serial.println("Error in blaster setup");
+          stop_motor();
           return;
         }        
         stop_motor();
@@ -77,6 +78,7 @@ void loop() {
         int valid_states[2] = {FIRE_READY, PRIMED};  
         if (!waitTillSensorChangeToValue(valid_states, 2)) {
           Serial.println("Error in blaster setup");
+          stop_motor();
           return;
         }        
         stop_motor();
@@ -200,6 +202,7 @@ void fireStateMachine() {
           break;
         }
         stop_motor();
+        //analogWrite(MOTOR_PIN, 0);
         /*
         // make sure breach is closed
         if (!waitTillSensorChangeToValue(FIRE_READY)) { // wait till fire ready
@@ -207,7 +210,14 @@ void fireStateMachine() {
           nextState = ERROR_STATE;
           break;
         } */
-        delay(1);
+        /*for (int i=0; i<100; i++){
+          update_sensor_state();
+          Serial.print(i);
+          Serial.print(" : ");          
+          Serial.println(sensorStateStr[currentSensorState]);
+          delay(1);
+        }*/
+
         nextState = COMPLETE_STATE;
         break;
       }
@@ -323,6 +333,7 @@ bool waitTillSensorChangeToValue(int target_states[], int length) {
       // whatever the reading is at, it's been there for longer than the debounce delay
       if (isValueInList(currentSensorState, target_states, length)) {
         // if the currentSensorState is in target_states
+        update_sensor_state();
         return true;
       }     
     }
@@ -352,12 +363,14 @@ bool isValueInList(int value, int list[], int length) {
 
 // Run motor at full speed
 void run_motor() {
+  Serial.println("running motor");
   analogWrite(MOTOR_PIN, 255);
 }
 
 // Stop motor
 void stop_motor() {
   analogWrite(MOTOR_PIN, 0);
+  Serial.println("stopped motor");
 }
 
 /*

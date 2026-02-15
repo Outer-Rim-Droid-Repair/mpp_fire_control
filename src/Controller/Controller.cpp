@@ -7,10 +7,9 @@
 
 #include "Controller.h"
 #include "MEDIC_Comms/MEDIC_Comms.h"
-#include "MEDIC_Comms/MEDIC_Comms.cpp"
 #include "MEDIC_Comms/MEDIC_Screens.h"
-#include "MEDIC_Comms/MEDIC_Screens.cpp"
 #include "FireControl/FireControlStructsEnums.h"
+#include "FireControl/FireControlStructsEnums.cpp"
 
 
 const char version[6] = "V0.1";
@@ -27,12 +26,6 @@ Fire_Control_Screen Fire_Control_Screen_Control;
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(COM_A, OUTPUT);
-  digitalWrite(COM_A, LOW);
-  pinMode(COM_B, OUTPUT);
-  digitalWrite(COM_B, LOW);
-
   pinMode(BUTTON_UP, INPUT_PULLUP);
   pinMode(BUTTON_DOWN, INPUT_PULLUP);
   pinMode(BUTTON_LEFT, INPUT_PULLUP);
@@ -56,13 +49,13 @@ void setup() {
   communicator = MEDIC_CONNTROLLER();
   communicator.begin();
 
-  Version_Screen_Control = Version_Screen(display, &communicator);
-  Chrono_Screen_Control = Chrono_Screen(display, &communicator);
-  Fire_Control_Screen_Control = Fire_Control_Screen(display, &communicator);
+  Version_Screen_Control = Version_Screen(display);
+  Chrono_Screen_Control = Chrono_Screen(display);
+  Fire_Control_Screen_Control = Fire_Control_Screen(display);
 
   Version_Screen_Control.drawTestPattern();
   delay(1000); // Pause for 1 seconds
-
+  updateConnectedDevices();
   updateVersionScreen();
   delay(1000);
 }
@@ -114,6 +107,7 @@ void loop() {
     buttonUpdate = false;
   }
   delay(20);
+  // Serial.println("Encoder value: ");
 }
 
 void findNextValidScreen(bool countUp) {
@@ -137,7 +131,7 @@ void findNextValidScreen(bool countUp) {
     } else if ((state == CHRONO_STATUS) and (chronoPresent)) {
       selectedScreenState = CHRONO_STATUS;
       break;
-    } else if ((state == FIRE_MODE_STATUS) and (!fireControlPresent)) {
+    } else if ((state == FIRE_MODE_STATUS) and (fireControlPresent)) {
       selectedScreenState = FIRE_MODE_STATUS;
       break;
     } else if ((state == POWER_STATUS) and (powerBoardPresent)) {
@@ -154,23 +148,8 @@ void findNextValidScreen(bool countUp) {
 }
 
 void readKeypad(void) {
-  encoder.tick();
   int buttonState = LOW;
   static int lastButtonState = HIGH;
-
-  int curr_rotary = encoder.getPosition();
-  //RotaryEncoder::Direction direction = encoder.getDirection();
-  
-  if (curr_rotary != last_rotary) {
-    // Serial.print("Encoder value: ");
-    // Serial.print(curr_rotary);
-    // Serial.print(" direction: ");
-    // Serial.println((int)direction);
-    rotary_change = last_rotary - curr_rotary;
-    buttonState = ROTARY;
-    buttonUpdate = true;
-  }
-  
 
   if (! digitalRead(BUTTON_UP)) {
     lastPressed = UP;
@@ -187,11 +166,9 @@ void readKeypad(void) {
     buttonState = HIGH;
   }
   if (buttonState != lastButtonState && lastPressed != NONE) {
-    //Serial.println(lastPressed);
     buttonUpdate = true;
   }
 
-  last_rotary = curr_rotary;
   lastButtonState = buttonState;
 }
 
@@ -233,6 +210,7 @@ void updateVersionScreen(void) {
 void editVersionScreen(void) {
   editMode = false;
 }
+
 // Chrono
 void updateChronoStatusScreen(void) {
   if ((currentScreenState != CHRONO_STATUS) or redrawBackground) {
@@ -240,8 +218,14 @@ void updateChronoStatusScreen(void) {
     currentScreenState = CHRONO_STATUS;
     redrawBackground = false;
   }
-  //communicator.requestChronoStatus();
-  //Chrono_Screen_Control.drawInfo();
+  communicator.requestChronoStatus();
+
+  float lastFPS = communicator.chronoStatus.lastFPS;
+  float maxFPS = communicator.chronoStatus.maxFPS;
+  float minFPS = communicator.chronoStatus.minFPS;
+  float lastDPS = communicator.chronoStatus.lastDPS;
+  float maxDPS = communicator.chronoStatus.maxDPS;
+  Chrono_Screen_Control.drawInfo(lastFPS, maxFPS, minFPS, lastDPS, maxDPS);
 }
 
 void editChronoStatusScreen(void) {
@@ -250,6 +234,7 @@ void editChronoStatusScreen(void) {
     redrawBackground = true;       
   } else if (lastPressed == UP) {
     // reset chrono
+    communicator.resetUnit(CHRONO_BOARD_ADDRESS);
     editMode = false;
   } else if (lastPressed == DOWN) {
     editMode = false;
@@ -263,8 +248,11 @@ void updateFireModeScreen(void) {
     currentScreenState = FIRE_MODE_STATUS;
     redrawBackground = false;
   }
-  //communicator.requestFireControlStatus();
-  //Fire_Control_Screen_Control.drawInfo();
+  communicator.requestFireControlStatus();
+
+  int *selectableFireModes = communicator.fireControlSettings.selectableFireModes;
+  int *selectableBurstAmounts = communicator.fireControlSettings.selectableBurstAmounts;
+  Fire_Control_Screen_Control.drawInfo(selectableFireModes, selectableBurstAmounts);
 }
 
 void editFireModeScreen(void) {

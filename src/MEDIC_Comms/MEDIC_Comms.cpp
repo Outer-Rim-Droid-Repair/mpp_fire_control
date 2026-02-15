@@ -25,12 +25,10 @@ void MEDIC::begin() {
 }
 
 void MEDIC::onReceiveHandler(int numBytesReceived) {
-	Serial.println("received message 6");
 }
 
 // Handles what function to call on a requestbased on current mode
 void MEDIC::onRequestHandler() {
-	Serial.println("received message 3");
 }
 
 /* ---------------- MEDIC_CONNTROLLER ---------------- */
@@ -80,7 +78,8 @@ void MEDIC_CONNTROLLER::requestChronoStatus() {
 	byte numBytes = sizeof(chronoStatus); // get size
 	// request the data be send. returns false if not a valid sender
 	_request(CHRONO_BOARD_ADDRESS, numBytes, STATUS);
-	Wire.readBytes( (byte*) &chronoStatus, numBytes); // read chrono Status 
+	Wire.readBytes( (byte*) &chronoStatus, numBytes); // read chrono Status
+	//Serial.println(chronoStatus.lastFPS);
 }
 
 void MEDIC_CONNTROLLER::requestPowerSettings() {
@@ -128,7 +127,9 @@ void MEDIC_CONNTROLLER::setChronoSettings() {
 	Wire.endTransmission();
 }
 
-
+void MEDIC_CONNTROLLER::resetUnit(int targetAddress) {
+	SetUnitToMode(targetAddress, RESET);
+}
 
 // attempts to connect to a given device
 bool MEDIC_CONNTROLLER::checkDeviceInSystem(byte address) {
@@ -179,17 +180,19 @@ void MEDIC_RECEIVER::connectOnRequestIdentifyFunction(void (*funct)()) {
 
 // add a function to call if a settings request is made
 void MEDIC_RECEIVER::connectOnRequestSettingsFunction(void (*funct)()) {	
-	Serial.println("set funct");
 	_onRequestSettingsFunction = funct;
 }
 
+// add a function to call if a settings request is made
+void MEDIC_RECEIVER::connectOnResetFunction(void (*funct)()) {	
+	_onResetFunction = funct;
+}
+
 void MEDIC_RECEIVER::onReceiveHandler(int numBytesReceived) {
-	Serial.println("received message 2");
 }
 
 // Handles what function to call on a requestbased on current mode
 void MEDIC_RECEIVER::onRequestHandler() {
-		Serial.println("received message 7");
 
 }
 
@@ -267,8 +270,11 @@ void MEDIC_CHRONO_RECEIVER::onReceiveHandler(int numBytesReceived) {
 	Serial.println("received message");
 	if (_currentMode != SET_SETTINGS) {
 		Wire.readBytes( (byte*) &recivedData, numBytesReceived);
+		if (recivedData.targetMode == RESET) {
+			_onResetFunction();
+		}
 		_currentMode = recivedData.targetMode;
-		Serial.println(_currentMode);
+		//Serial.println(_currentMode);
 	} else {  // in SET_SETTINGS
 		_currentMode = IDENTIFY;  // set to a different mode to leave set mode
 		Wire.readBytes( (byte*) &settingStruct, numBytesReceived);
@@ -282,6 +288,7 @@ void MEDIC_CHRONO_RECEIVER::onRequestHandler() {
 		statusStruct = chronoStatusStruct();
 		statusStruct.heartbeat = true;
 		_onRequestStatusFunction();
+		Serial.println(statusStruct.lastFPS);
 		Wire.write((byte*) &statusStruct, sizeof(statusStruct));  // send data
 	} else if (_currentMode == IDENTIFY) {
 		identifyStruct = IdentifyStatusStruct();

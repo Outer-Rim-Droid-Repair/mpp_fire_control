@@ -14,7 +14,7 @@ enum fireMode // valid firemodes
   BURST_FIRE = 1,  // Fire darts till burstLimit is hit. Stop on trigger release
   AUTO_FIRE = 2    // Fire untill trigger released
 };
-const char* fireModeStr[] = {"Single", "Burst", "Auto"};
+extern const char* fireModeStr[3];
 
 struct fireModeSetup {
   fireMode mode;
@@ -28,7 +28,7 @@ enum sensorState   // Internal fire sensors
   CLOSED_BREACH,   // b10 mid cycle or post firing pre cycle. dart may or may not be loaded with plunger not in back possition
   FIRE_READY       // b11  Ready to fire. Dart loaded, plunger primmed
 };
-const char* sensorStateStr[] = {"MID_CYCLE", "PRIMED", "CLOSED_BREACH", "FIRE_READY"};
+extern const char* sensorStateStr[4];
 
 enum firingStates           // States used for the fire state machine
 {
@@ -38,13 +38,13 @@ enum firingStates           // States used for the fire state machine
   COMPLETE_STATE,             // firing cycle complete
   ERROR_STATE
 };
-const char* stateMachineStr[] = {"LEAVING_STARTING_POSSITION", "CYCLE_TO_PRIMED", "CYCLE_TO_DEPRIMED", "COMPLETE_STATE", "ERROR_STATE"};
+extern const char* stateMachineStr[5];
 
 enum idleMode       //possible idle possitions
 {                   // BREACH_PIN,PLUNGER_PIN
   DEPRIMED_IDLE,    // 1,0: full idle. spring deprimmed. safe possition. should return here before stoage
   PRIMED_IDLE       // 1,1: fire prime. most responsive possition
 };
-const char* idleModeStr[] = {"DEPRIMED_IDLE", "PRIMED_IDLE"};
+extern const char* idleModeStr[2];
 
 #endif

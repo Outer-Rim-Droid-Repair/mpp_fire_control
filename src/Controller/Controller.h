@@ -8,15 +8,11 @@
 #define SCREEN_ADDRESS 0x3D ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 // keypad
-#define PIN_ENCODER_A 13
-#define PIN_ENCODER_B 12
-#define COM_A    11
-#define COM_B    A5
 #define BUTTON_UP 5
-#define BUTTON_LEFT A4
+#define BUTTON_LEFT 6
 #define BUTTON_DOWN 9
-#define BUTTON_RIGHT 6
-#define BUTTON_IN 10
+#define BUTTON_RIGHT 10
+#define BUTTON_IN 11
 
 enum POSSITIONS {
   UP,
@@ -28,9 +24,6 @@ enum POSSITIONS {
   NONE
 };
 POSSITIONS lastPressed = NONE;
-RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
-int last_rotary = 0;
-int rotary_change = 0;
 
 enum SCREEN_STATE {
     VERSION,

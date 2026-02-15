@@ -9,9 +9,9 @@
 class Screen {
     public:
         Screen() {};
-        Screen(Adafruit_SSD1306 screen_obj, MEDIC_CONNTROLLER *controller);
+        Screen(Adafruit_SSD1306 screen_obj);
         virtual void drawBackgrond() {}
-        virtual void drawInfo() {}
+        void drawInfo() {}
 
         void drawTestPattern(void);
         void invertSection(int x1, int y1, int x2, int y2);
@@ -22,7 +22,6 @@ class Screen {
         Adafruit_SSD1306 _screen_obj;
         int _width;
         int _height;
-        MEDIC_CONNTROLLER _controller;
 
     private:
 
@@ -31,7 +30,7 @@ class Screen {
 class Version_Screen: public Screen {
     public:
         Version_Screen(): Screen() {}
-        Version_Screen(Adafruit_SSD1306 screen_obj, MEDIC_CONNTROLLER *controller): Screen(screen_obj, controller) {}
+        Version_Screen(Adafruit_SSD1306 screen_obj): Screen(screen_obj) {}
         void drawBackgrond() override;
         void drawInfo(char *ControllerVersion, char *powerBoardVersion, char *FireControlVersion, char *ChronoVersion);
 
@@ -40,18 +39,18 @@ class Version_Screen: public Screen {
 class Chrono_Screen: public Screen {
     public: 
         Chrono_Screen(): Screen() {}
-        Chrono_Screen(Adafruit_SSD1306 screen_obj, MEDIC_CONNTROLLER *controller): Screen(screen_obj, controller) {}
+        Chrono_Screen(Adafruit_SSD1306 screen_obj): Screen(screen_obj) {}
         void drawBackgrond() override;
-        void drawInfo() override;
+        void drawInfo(float lastFPS, float maxFPS, float minFPS, float lastDPS, float maxDPS);
 
 };
 
 class Fire_Control_Screen: public Screen {
     public:
         Fire_Control_Screen(): Screen() {}
-        Fire_Control_Screen(Adafruit_SSD1306 screen_obj, MEDIC_CONNTROLLER *controller): Screen(screen_obj, controller) {}
+        Fire_Control_Screen(Adafruit_SSD1306 screen_obj): Screen(screen_obj) {}
         void drawBackgrond() override;
-        void drawInfo() override;
+        void drawInfo(int selectableFireModes[3], int selectableBurstAmounts[3]);
         void addOutline(int x, int y, bool isWhite);
         unsigned x1[2] = {14, 62};
         //int x2[2] = {58, 125};

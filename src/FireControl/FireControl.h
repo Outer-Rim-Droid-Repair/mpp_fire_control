@@ -4,14 +4,14 @@
 #include "FireControlStructsEnums.h"
 
 // input pins
-#define TRIGGER_PIN_NUMBER 19
-#define BREACH_PIN_NUMBER 18
-#define PLUNGER_PIN_NUMBER 20   
-#define SAFETY_PIN_NUMBER 12
-#define FIRE_SELECT_PIN_1_NUMBER 21
-#define FIRE_SELECT_PIN_2_NUMBER 22
+#define TRIGGER_PIN_NUMBER 8
+#define BREACH_PIN_NUMBER 6
+#define PLUNGER_PIN_NUMBER 7   
+#define SAFETY_PIN_NUMBER 10
+#define FIRE_SELECT_PIN_1_NUMBER 16
+#define FIRE_SELECT_PIN_2_NUMBER 14
 // output pins
-#define MOTOR_PIN 11
+#define MOTOR_PIN 9
 
 // input high speed pins
 DigitalPin<TRIGGER_PIN_NUMBER> tiggerPin;
