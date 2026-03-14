@@ -21,6 +21,11 @@ void setup() {
   FireModePin2.mode(INPUT_PULLUP);
   // outputs
   pinMode(MOTOR_PIN, OUTPUT);
+  digitalWrite(MOTOR_PIN, LOW);  // Turn off motor
+  
+  pinMode(BRAKE_PIN, OUTPUT);
+  digitalWrite(BRAKE_PIN, LOW);  // turn off brake
+
 
   stop_motor(); // turn off motor on boot
 
@@ -364,12 +369,24 @@ bool isValueInList(int value, int list[], int length) {
 // Run motor at full speed
 void run_motor() {
   Serial.println("running motor");
-  analogWrite(MOTOR_PIN, 255);
+  //analogWrite(MOTOR_PIN, 255);
+  if (USING_BRAKE) {
+    digitalWrite(BRAKE_PIN, LOW);  // brake off
+    delay(1);
+
+  }
+  digitalWrite(MOTOR_PIN, HIGH);  // motor on
 }
 
 // Stop motor
 void stop_motor() {
-  analogWrite(MOTOR_PIN, 0);
+  //analogWrite(MOTOR_PIN, 0);
+  digitalWrite(MOTOR_PIN, LOW);  // motor off
+  if (USING_BRAKE) {
+    delay(1);
+    digitalWrite(BRAKE_PIN, HIGH);  // brake on
+  }
+
   Serial.println("stopped motor");
 }
 

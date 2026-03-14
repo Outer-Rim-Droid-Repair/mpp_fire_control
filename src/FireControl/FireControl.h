@@ -11,7 +11,11 @@
 #define FIRE_SELECT_PIN_1_NUMBER 16
 #define FIRE_SELECT_PIN_2_NUMBER 14
 // output pins
-#define MOTOR_PIN 9
+#define MOTOR_PIN A0
+#define BRAKE_PIN A1
+
+// flags
+#define USING_BRAKE true
 
 // input high speed pins
 DigitalPin<TRIGGER_PIN_NUMBER> tiggerPin;
