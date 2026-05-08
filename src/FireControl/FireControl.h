@@ -15,7 +15,7 @@
 #define BRAKE_PIN A1
 
 // flags
-#define USING_BRAKE true
+#define USING_BRAKE false
 
 // input high speed pins
 DigitalPin<TRIGGER_PIN_NUMBER> tiggerPin;

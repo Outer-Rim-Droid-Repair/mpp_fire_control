@@ -45,7 +45,6 @@ void loop() {
   static int burstCount = 0;            // How many shots have been fired 
   static long lastDevMessage = 0;       // for timing debug messages
 
-
   if (DEBUG_MODE) {  // if debug print states
     if (millis() - lastDevMessage >= 5*1000UL) // Only write once every 2 seconds
     {
@@ -215,13 +214,13 @@ void fireStateMachine() {
           nextState = ERROR_STATE;
           break;
         } */
-        /*for (int i=0; i<100; i++){
+        for (int i=0; i<100; i++){
           update_sensor_state();
           Serial.print(i);
           Serial.print(" : ");          
           Serial.println(sensorStateStr[currentSensorState]);
           delay(1);
-        }*/
+        }
 
         nextState = COMPLETE_STATE;
         break;
