@@ -3,66 +3,51 @@
 
 #include "FireControlStructsEnums.h"
 
+//general controlboard
 // input pins
-#define TRIGGER_PIN_NUMBER 8
-#define BREACH_PIN_NUMBER 6
-#define PLUNGER_PIN_NUMBER 7   
-#define SAFETY_PIN_NUMBER 10
-#define FIRE_SELECT_PIN_1_NUMBER 16
-#define FIRE_SELECT_PIN_2_NUMBER 14
+#define SWITCH_1 14
+#define SWITCH_2 16
+#define SWITCH_3 10  
+#define SELECTOR_SWITCH_1 2
+#define SELECTOR_SWITCH_2 3
+#define SELECTOR_SWITCH_3 4
+#define SELECTOR_SWITCH_4 5
+
 // output pins
-#define MOTOR_PIN A0
-#define BRAKE_PIN A1
+#define DRIVER_1_ACCELERATE 8
+#define DRIVER_1_BRAKE 9
+#define DRIVER_2_ACCELERATE 7
+#define DRIVER_2_BRAKE 6
 
-// flags
-#define USING_BRAKE false
 
-// input high speed pins
-DigitalPin<TRIGGER_PIN_NUMBER> tiggerPin;
-DigitalPin<BREACH_PIN_NUMBER> breachPin;
-DigitalPin<PLUNGER_PIN_NUMBER> plungerPin;
-DigitalPin<SAFETY_PIN_NUMBER> safetyPin;
-DigitalPin<FIRE_SELECT_PIN_1_NUMBER> FireModePin1;
-DigitalPin<FIRE_SELECT_PIN_2_NUMBER> FireModePin2;
+
+//#define trigger_pin switch2Pin
 
 // tracking
-volatile int currentTriggerState = LOW;           // Is the trigger pulled? High: pulled, LOW: released           
-int lastTriggerState = LOW;                       // History of currentTriggerState 
-volatile int currentSensorState = CLOSED_BREACH;  // Internal fire sensors read. Default to CLOSED_BREACH as this should be power down state
-volatile int safetyState = LOW;                   // Is the Safty Enabled? High: Enabled, LOW: Disabled  
-firingStates nextState;                                 // Firing State machine state. 
+extern int selectorPossition;
+extern int currentTriggerState;
+extern int switch_1_reading;
+extern int switch_2_reading;
+extern int switch_3_reading;
 
-// User controlled settings.
-idleMode idlePossition = PRIMED_IDLE;             // where should the firing cycle end?
-// Could make this a by mode option. i.e. user could select burst 2 and burst 4 as their fire modes
-int maxDPS = 5;                                  // limit on number of darts per second
-
-// firemode
-int selectedFireMode;
-fireMode selectableFireModes[3] = {SINGLE_FIRE, BURST_FIRE, AUTO_FIRE};
-int selectableBurstAmount[3] = {1, 3, -1};
-
+// User Settings
+extern int maxFireRate;
 
 // functions
-void fire();
-void fireStateMachine();
-bool waitTillSensorChange(int initial_state);
-void _getAllSensorStatesBut(int *list, int state);
-bool waitTillSensorChangeToValue(int target_state);
-bool waitTillSensorChangeToValue(int target_states[], int length);
-bool isValueInList(int value, int list[], int length);
-void run_motor();
-void stop_motor();
-void update_sensor_state();
+void read_switchs();
+void read_selector();
 void update_trigger_state();
-void update_safety_state();
-void update_fire_mode();
+void run_driver_1();
+void run_driver_2();
+void stop_driver_1();
+void stop_driver_2();
 
-void fillStatus();
-void fillIdentifier();
-void setSettings();
-void fillSettings();
+// dev functions
+// void dev_write_serial_all_states();
 
-void dev_write_serial_all_states();
+// test functions
+void test_driver_1();
+void test_driver_2();
+
 
 #endif
