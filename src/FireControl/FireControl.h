@@ -19,16 +19,25 @@
 #define DRIVER_2_ACCELERATE 7
 #define DRIVER_2_BRAKE 6
 
+#define SAFETY_SELECTOR_VALUE 1
 
-
-//#define trigger_pin switch2Pin
+//enums
+enum selector_positions {
+    SAFE = -1,
+    POS_1 = 0,
+    POS_2 = 1,
+    POS_3 = 2,
+    INVALID = -2
+};
 
 // tracking
-extern int selectorPossition;
 extern int currentTriggerState;
 extern int switch_1_reading;
 extern int switch_2_reading;
 extern int switch_3_reading;
+
+extern selector_positions selectorPosition;
+
 
 // User Settings
 extern int maxFireRate;
@@ -37,10 +46,10 @@ extern int maxFireRate;
 void read_switchs();
 void read_selector();
 void update_trigger_state();
-void run_driver_1();
-void run_driver_2();
-void stop_driver_1();
-void stop_driver_2();
+
+void full_speed_driver(int driver);
+void stop_driver(int driver);
+void run_driver(int driver, int speed);
 
 // dev functions
 // void dev_write_serial_all_states();

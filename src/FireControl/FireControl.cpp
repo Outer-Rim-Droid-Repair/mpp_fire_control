@@ -6,7 +6,7 @@
 
 #include "FireControl.h"
 
-#include "RevCore_Flywheeler.h"
+#include "FlyCore_Flywheeler.h"
 
 const char version[6] = "V0.1";
 
@@ -14,16 +14,16 @@ const char version[6] = "V0.1";
 #define DEBUG_MODE true
 
 // tracking
-int selectorPossition = 0;
 int currentTriggerState = 0;
 int switch_1_reading = 0;
 int switch_2_reading = 0;
 int switch_3_reading = 0;
 
 // User Settings
-int maxFireRate = 15;
+int maxFireRate = 10;
 
 // firemode
+selector_positions selectorPosition = SAFE;
 int selectedFireMode = 1;
 fireMode selectableFireModes[3] = {SINGLE_FIRE, BURST_FIRE, AUTO_FIRE};
 int selectableBurstAmount[3] = {1, 3, -1};
@@ -59,7 +59,7 @@ void setup() {
 
   Serial.begin(9600); // initialize serial communication:
 
-  //inital_setup();
+  inital_setup();
 }
 
 void loop() {
@@ -70,13 +70,14 @@ void loop() {
 
   read_selector();
   update_trigger_state();
+
   blaster_background_task();
 
   if (!currentTriggerState) {
     triggerReleased = true;
     burstCount = 0;
   }
-  if (selectorPossition == SAFETY_SELECTOR_VALUE) { // safty is on
+  if (selectorPosition == SAFE) { // safty is on
     if (currentTriggerState and !blasterSetup and triggerReleased) {  // do initial setup
       triggerReleased = false;  // Require the trigger to be released
       blasterSetup = blaster_setup();  // set flag
@@ -86,7 +87,7 @@ void loop() {
   } else if (currentTriggerState and triggerReleased) {  // fire next dart
     // if blaster not set up pullingthe trigger will do a similar process
     blasterSetup = true;  // set flag
-    switch (selectableFireModes[selectedFireMode]) {
+    switch (selectableFireModes[selectorPosition]) {
       case SINGLE_FIRE:
         fire();
         triggerReleased = false;  // Require the trigger to be released
@@ -94,7 +95,7 @@ void loop() {
       case BURST_FIRE:
         fire();
         burstCount += 1;  // increase fire count
-        if (burstCount >= selectableBurstAmount[selectedFireMode]) { // once burst limit has been reached
+        if (burstCount >= selectableBurstAmount[selectorPosition]) { // once burst limit has been reached
           triggerReleased = false; // Require the trigger to be released
         }
         break;
@@ -102,7 +103,7 @@ void loop() {
         fire();
         break;
     }
-  } 
+  }
 }
 
 void read_switchs(){
@@ -112,16 +113,16 @@ void read_switchs(){
 }
 
 void read_selector() {
-  if (!selectorSwitch1Pin) {
-    selectorPossition = 1;
-  } else if (!selectorSwitch2Pin) {
-    selectorPossition = 2;
+  if (!selectorSwitch1Pin) {  // safe
+    selectorPosition = SAFE;
+  } else if (!selectorSwitch2Pin) { 
+    selectorPosition = POS_1;
   } else if (!selectorSwitch3Pin) {
-    selectorPossition = 3;
+    selectorPosition = POS_2;
   } else if (!selectorSwitch4Pin) {
-    selectorPossition = 4;
+    selectorPosition = POS_3;
   } else {
-    selectorPossition = 0;
+    selectorPosition = INVALID;
   }
 }
 
@@ -144,51 +145,60 @@ void update_trigger_state() {
 }
 
 // Run motor at full speed
-void run_driver_1() {
-  if (DRIVER_1_USING_BRAKE) {
-    digitalWrite(DRIVER_1_BRAKE, LOW);  // brake off
-    delay(1);
-  }
-  digitalWrite(DRIVER_1_ACCELERATE, HIGH);  // motor on
+void full_speed_driver(int driver) {
+  run_driver(driver, 255);
 }
 
-void run_driver_2() {
-  if (DRIVER_2_USING_BRAKE) {
-    digitalWrite(DRIVER_2_BRAKE, LOW);  // brake off
-    delay(1);
-  }
-  digitalWrite(DRIVER_2_ACCELERATE, HIGH);  // motor on
+void stop_driver(int driver) {
+  run_driver(driver, 0);
 }
 
-// Stop motor
-void stop_driver_1() {
-  digitalWrite(DRIVER_1_ACCELERATE, LOW);  // motor off
-  if (DRIVER_1_USING_BRAKE) {
-    delay(1);
-    digitalWrite(DRIVER_1_BRAKE, HIGH);  // brake on
-  }
-}
+void run_driver(int driver, int speed) {
+  bool using_brake;
+  int brake_pin;
+  int drive_pin;
 
-void stop_driver_2() {
-  digitalWrite(DRIVER_2_ACCELERATE, LOW);  // motor off
-  if (DRIVER_2_USING_BRAKE) {
-    delay(1);
-    digitalWrite(DRIVER_2_BRAKE, HIGH);  // brake on
+  if (driver == 1){
+    using_brake = DRIVER_1_USING_BRAKE;
+    brake_pin = DRIVER_1_BRAKE;
+    drive_pin = DRIVER_1_ACCELERATE;
+  } else if (driver == 2){
+    using_brake = DRIVER_2_USING_BRAKE;
+    brake_pin = DRIVER_2_BRAKE;
+    drive_pin = DRIVER_2_ACCELERATE;
   }
+  else {
+    return;
+  }
+  if (speed == 0){
+    digitalWrite(drive_pin, LOW);
+    if (using_brake) {
+      digitalWrite(brake_pin, HIGH);  // brake off
+      delay(1);
+    }
+  } else {
+    if (using_brake) {
+      digitalWrite(brake_pin, LOW);  // brake off
+      delay(1);
+    }
+    analogWrite(drive_pin, speed);
+  }
+
+  
 }
 
 // test functions
 void test_driver_1() {
-  run_driver_1();
+  full_speed_driver(1);
   delay(1000);
-  stop_driver_1();
+  full_speed_driver(1);
   delay(1000);
 }
 
 void test_driver_2() {
-  run_driver_2();
+  full_speed_driver(2);
   delay(1000);
-  stop_driver_2();
+  full_speed_driver(2);
   delay(1000);
 }
 

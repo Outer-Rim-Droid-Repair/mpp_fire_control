@@ -6,7 +6,6 @@
 
 // required defines
 #define trigger_pin switch2Pin
-#define SAFETY_SELECTOR_VALUE 1
 
 #define DRIVER_1_USING_BRAKE true
 #define DRIVER_2_USING_BRAKE false
@@ -14,6 +13,8 @@
 // type specific defines
 #define rev_trigger_reading switch_1_reading
 #define pusher_switch_reading switch_3_reading
+#define pusher_driver 1
+#define flywheel_driver 2
 
 #define PUSHER_TIME_OUT 100
 

@@ -5,7 +5,7 @@
 #include <DigitalIO.h>
 
 //#include "FireControl.h"
-#include "RevCore_Flywheeler.h"
+#include "FlyCore_Flywheeler.h"
 
 
 bool flywheelsSpinning = false;
@@ -24,11 +24,13 @@ bool blaster_teardown(){
 }
 
 void blaster_background_task() {
+
+
     if (rev_trigger_reading) {
-        run_driver_2();
+        run_driver(flywheel_driver, 255);
         flywheelsSpinning = true;
     } else {
-        stop_driver_2();
+        stop_driver(flywheel_driver);
         flywheelsSpinning = false;
     }
 }
@@ -37,7 +39,7 @@ void fire(){
     static unsigned long startTime = 0;
     static unsigned long tinmeoutTimmer = 0;
     if (!flywheelsSpinning) {
-        run_driver_2();
+        run_driver(flywheel_driver, 255);
         flywheelsSpinning = true;
         delay(200);
     }
@@ -45,13 +47,13 @@ void fire(){
 
     Serial.println("fire");
 
-    run_driver_1();
+    full_speed_driver(pusher_driver);
 
     // leave rear switch
     tinmeoutTimmer = millis();
     while(pusher_switch_reading){
         if ((millis() - tinmeoutTimmer) > PUSHER_TIME_OUT) {
-            stop_driver_1();
+            stop_driver(pusher_driver);
             Serial.println("ERROR: Timeout in run motor");
             return;
         }
@@ -63,14 +65,14 @@ void fire(){
     tinmeoutTimmer = millis();
     while(!pusher_switch_reading){
         if ((millis() - tinmeoutTimmer) > PUSHER_TIME_OUT) {
-            stop_driver_1();
+            stop_driver(pusher_driver);
             Serial.println("ERROR: Timeout in run motor");
             return;
         }
         delay(1);
         read_switchs();
     }
-    stop_driver_1();
+    stop_driver(pusher_driver);
 
     // insure fire rate
     int minLoopTimeMs = 1000/maxFireRate;
