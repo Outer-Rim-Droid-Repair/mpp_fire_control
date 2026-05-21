@@ -231,7 +231,8 @@ void MEDIC_POWER_BOARD_RECEIVER::onRequestHandler() {
 
 // --------------------------------
 void MEDIC_FIRE_CONTROL_RECEIVER::onReceiveHandler(int numBytesReceived) {
-	Serial.println("received message");
+	Serial.print("received message. Mode: ");
+	Serial.println(_currentMode);
 	if (_currentMode != SET_SETTINGS) {
 		Wire.readBytes( (byte*) &recivedData, numBytesReceived);
 		_currentMode = recivedData.targetMode;
@@ -243,7 +244,8 @@ void MEDIC_FIRE_CONTROL_RECEIVER::onReceiveHandler(int numBytesReceived) {
 }
 
 void MEDIC_FIRE_CONTROL_RECEIVER::onRequestHandler() {
-	Serial.println("received request");
+	Serial.print("received request. Mode: ");
+	Serial.println(_currentMode);
 	if (_currentMode == STATUS){
 		statusStruct = fireControlStatusStruct();
 		statusStruct.heartbeat = true;

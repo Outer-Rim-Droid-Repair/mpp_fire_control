@@ -1,88 +1,91 @@
-#include <RotaryEncoder.h>
+#include <Arduino.h>
+#include "FireControl/FireControlStructsEnums.h"
+#include "MEDIC_Comms/MEDIC_Comms.h"
+#include "commTest.h"
 
-#define PIN_ENCODER_A 13
-#define PIN_ENCODER_B 12
-#define COM_A    11
-#define COM_B    A5
-#define BUTTON_UP 5
-#define BUTTON_LEFT A4
-#define BUTTON_DOWN 9
-#define BUTTON_RIGHT 6
-#define BUTTON_IN 10
 
-enum POSSITIONS {
-  UP,
-  DOWN,
-  LEFT,
-  RIGHT,
-  IN,
-  NONE
+int flywheel_speed = 255;
+int flywheel_idle_speed = 175;  
+
+//int maxFireRate = 15;
+
+fireMode selectableFireModes[3] = {SINGLE_FIRE, BURST_FIRE, AUTO_FIRE};
+int selectableBurstAmounts[3]    = {1,           3,          -1};
+int selectablemaxFireRates[3]   = {15,          15,         15};
+bool selectableUseIdle[3]       = {false,       false,      false}; 
+
+//enums
+enum selector_positions {
+    SAFE = -1,
+    POS_1 = 0,
+    POS_2 = 1,
+    POS_3 = 2,
+    INVALID = -2
 };
-POSSITIONS lastPressed = NONE;
 
-RotaryEncoder encoder(PIN_ENCODER_A, PIN_ENCODER_B, RotaryEncoder::LatchMode::TWO03);
-// This interrupt will do our encoder reading/checking!
-void checkPosition() {
-  encoder.tick(); // just call tick() to check the state.
-}
-int last_rotary = 0;
+const char version[6] = "V0.1";
 
+MEDIC_FIRE_CONTROL_RECEIVER communicator = MEDIC_FIRE_CONTROL_RECEIVER();
 
-void setup(void) {
-  Serial.begin(115200);
-  while (!Serial);
-  Serial.println("ANO Rotary Encoder Demo");
+int selectorPosition = SAFE;
+blasterTypes blaster_type = FLYWHEELER;
 
-  pinMode(COM_A, OUTPUT);
-  digitalWrite(COM_A, LOW);
-  pinMode(COM_B, OUTPUT);
-  digitalWrite(COM_B, LOW);
+// quick accesses settings
+#define DEBUG_MODE true
 
-  //attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), checkPosition, CHANGE);
-  //attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), checkPosition, CHANGE);
+void setup() {
+  Serial.begin(9600); // initialize serial communication:
 
-  pinMode(BUTTON_UP, INPUT_PULLUP);
-  pinMode(BUTTON_DOWN, INPUT_PULLUP);
-  pinMode(BUTTON_LEFT, INPUT_PULLUP);
-  pinMode(BUTTON_RIGHT, INPUT_PULLUP);
-  pinMode(BUTTON_IN, INPUT_PULLUP);
+  // pinMode(LED_BUILTIN, OUTPUT);
+
+  //communicator = MEDIC_FIRE_CONTROL_RECEIVER();
+  communicator.connectOnRequestIdentifyFunction(fillIdentifier);
+  communicator.connectOnRequestSettingsFunction(fillSettings);
+  communicator.connectSetSettingFunction(setSettings);
+  communicator.connectOnRequestStatusFunction(fillStatus);
+  communicator.begin();
 }
 
+void loop() {
+  // digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
+  //Serial.println("HIGH");
+  delay(1000);                      // wait for a second
+  // digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW
+  //Serial.println("LOW");
+  delay(1000);                      // wait for a second
+}
 
-void loop(void) {
-  // read encoder
-  encoder.tick();
-  int curr_rotary = encoder.getPosition();
-  RotaryEncoder::Direction direction = encoder.getDirection();
-  
-  if (curr_rotary != last_rotary) {
-    Serial.print("Encoder value: ");
-    Serial.print(curr_rotary);
-    Serial.print(" direction: ");
-    Serial.println((int)direction);
-  }
-  last_rotary = curr_rotary;
-  int buttonState = LOW;
-  static int lastButtonState = HIGH;
+void fillStatus() {
+  communicator.statusStruct.FireMode = selectableFireModes[selectorPosition];
+  communicator.statusStruct.BurstAmount = selectableBurstAmounts[selectorPosition];
+  communicator.statusStruct.safteyState = 0;
+  communicator.statusStruct.triggerState = 0;
+}
 
-  if (! digitalRead(BUTTON_UP)) {
-    lastPressed = UP;
-  } else if (! digitalRead(BUTTON_LEFT)) {
-    lastPressed = LEFT;
-  } else if (! digitalRead(BUTTON_DOWN)) {
-    lastPressed = DOWN;
-  } else if (! digitalRead(BUTTON_RIGHT)) {
-    lastPressed = RIGHT;
-  } else if (! digitalRead(BUTTON_IN)) {
-    lastPressed = IN;
-  } else {
-    lastPressed = NONE;
-    buttonState = HIGH;
-  }
-  if (buttonState != lastButtonState && lastPressed != NONE) {
-    Serial.println(lastPressed);
-  }
+void fillIdentifier() {
+  strcpy(communicator.identifyStruct.version, version);
+  communicator.identifyStruct.blaster_type = (int) blaster_type;
+  Serial.print("Type: ");
+  Serial.println(blaster_type);
+}
 
-  lastButtonState = buttonState;
-  delay(20);
+void setSettings() {
+  memcpy(&selectableFireModes, &communicator.settingStruct.selectableFireModes[0], sizeof(selectableFireModes));
+  memcpy(&selectableBurstAmounts, &communicator.settingStruct.selectableBurstAmounts[0], sizeof(selectableBurstAmounts));
+  memcpy(&selectablemaxFireRates, &communicator.settingStruct.selectablemaxFireRates[0], sizeof(selectablemaxFireRates));
+  // maxDPS = communicator.settingStruct.maxFireRate;
+  // idlePossition = (idleMode) communicator.settingStruct.idlePossition;
+}
+
+void fillSettings() {
+  // convert firemode to int this should get changed back. see TODO in MEDIC_Comms
+  unsigned int modes[3];
+  for (unsigned int i = 0; i < 3; i++){
+    modes[i] = (unsigned int) selectableFireModes[i];
+  }
+  memcpy(&communicator.settingStruct.selectableFireModes, &modes[0], sizeof(communicator.settingStruct.selectableFireModes));
+  memcpy(&communicator.settingStruct.selectableBurstAmounts, &selectableBurstAmounts[0], sizeof(communicator.settingStruct.selectableBurstAmounts));
+  memcpy(&communicator.settingStruct.selectablemaxFireRates, &selectablemaxFireRates[0], sizeof(communicator.settingStruct.selectablemaxFireRates));
+  memcpy(&communicator.settingStruct.selectableUseIdle, &selectableUseIdle[0], sizeof(communicator.settingStruct.selectableUseIdle));
+  communicator.settingStruct.idlePossitionLevel = flywheel_idle_speed;
 }

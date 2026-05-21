@@ -19,6 +19,12 @@
 #define PUSHER_TIME_OUT 100
 
 extern bool flywheelsSpinning;
+extern int flywheel_speed;
+extern int flywheel_idle_speed;
+
+extern int max_fire_rates[3];
+extern bool use_idle[3];
+
 
 // required functions
 void inital_setup();        // anything needed to do on boot

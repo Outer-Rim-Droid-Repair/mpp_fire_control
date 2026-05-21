@@ -47,4 +47,13 @@ enum idleMode       //possible idle possitions
 };
 extern const char* idleModeStr[2];
 
+enum blasterTypes
+{
+  MPP,
+  FLYWHEELER,
+  NA
+};
+extern const char* blasterTypesStr[3];
+
+
 #endif

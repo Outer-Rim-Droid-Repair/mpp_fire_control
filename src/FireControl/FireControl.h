@@ -16,8 +16,8 @@
 // output pins
 #define DRIVER_1_ACCELERATE 8
 #define DRIVER_1_BRAKE 9
-#define DRIVER_2_ACCELERATE 7
-#define DRIVER_2_BRAKE 6
+#define DRIVER_2_ACCELERATE 6
+#define DRIVER_2_BRAKE 7
 
 #define SAFETY_SELECTOR_VALUE 1
 
@@ -37,6 +37,9 @@ extern int switch_2_reading;
 extern int switch_3_reading;
 
 extern selector_positions selectorPosition;
+extern int selectedFireMode;
+extern fireMode selectableFireModes[3];
+extern int selectableBurstAmount[3];
 
 
 // User Settings

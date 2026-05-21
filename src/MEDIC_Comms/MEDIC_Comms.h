@@ -14,8 +14,9 @@ const byte CHRONO_BOARD_ADDRESS = 11;
 
 struct IdentifyStatusStruct {
 	char version[6];		//  6
+	int blaster_type;		//  2
 	bool heartbeat;			//  1
-	byte padding[25];		// 25
+	byte padding[23];		// 23
                             //------
     // total                // 32
 };
@@ -58,11 +59,13 @@ struct fireControlSettingsStruct {  // TODO figure out how to handdle changin po
 	int maxFireRate;			//  2
 	int selectableFireModes[3]; //  6
 	int selectableBurstAmounts[3];// 6
-	int idlePossition;			//  2  // TODO figure out how to not have that as a raw int
+	int selectablemaxFireRates[3];// 6
+	bool selectableUseIdle[3];	//  3
+	int idlePossitionLevel;	//  2  // TODO figure out how to not have that as a raw int
 	bool heartbeat;				//  1  // TODO reorder based on size
-	byte padding[1];      		//  1
+	byte padding[3];      		//  6
   								//------
-  	// total                	//  16
+  	// total                	//  32
 };
 
 struct chronoStatusStruct {

@@ -4,6 +4,13 @@
 #include <Arduino.h>
 #include <DigitalIO.h>
 
+/*
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+*/
+
 #include "FireControl.h"
 
 #include "FlyCore_Flywheeler.h"
@@ -13,6 +20,8 @@ const char version[6] = "V0.1";
 // quick accesses settings
 #define DEBUG_MODE true
 
+// Adafruit_SSD1306 display(128, 64, &Wire, -1);
+
 // tracking
 int currentTriggerState = 0;
 int switch_1_reading = 0;
@@ -20,13 +29,11 @@ int switch_2_reading = 0;
 int switch_3_reading = 0;
 
 // User Settings
-int maxFireRate = 10;
+
 
 // firemode
 selector_positions selectorPosition = SAFE;
 int selectedFireMode = 1;
-fireMode selectableFireModes[3] = {SINGLE_FIRE, BURST_FIRE, AUTO_FIRE};
-int selectableBurstAmount[3] = {1, 3, -1};
   
 //digital pins
 DigitalPin<SWITCH_1> switch1Pin;
@@ -70,6 +77,15 @@ void loop() {
 
   read_selector();
   update_trigger_state();
+  read_switchs();
+  /*
+  Serial.print(rev_trigger_reading);
+  Serial.print(": ");
+  Serial.print(switch_3_reading);
+  Serial.print(": ");
+  Serial.print(!switch3Pin);
+  Serial.print(": ");
+  Serial.println(selectorPosition);*/
 
   blaster_background_task();
 
@@ -107,6 +123,14 @@ void loop() {
 }
 
 void read_switchs(){
+  /*
+  Serial.print(!switch1Pin);
+  Serial.print(": ");
+  Serial.print(!switch2Pin);
+  Serial.print(": ");
+  Serial.println(!switch3Pin);
+  */
+
   switch_1_reading = !switch1Pin;
   switch_2_reading = !switch2Pin;
   switch_3_reading = !switch3Pin;

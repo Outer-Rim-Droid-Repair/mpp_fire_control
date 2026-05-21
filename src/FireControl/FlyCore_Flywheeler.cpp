@@ -9,6 +9,15 @@
 
 
 bool flywheelsSpinning = false;
+int flywheel_speed = 255;
+int flywheel_idle_speed = 175;
+
+//int maxFireRate = 15;
+
+fireMode selectableFireModes[3] = {SINGLE_FIRE, BURST_FIRE, AUTO_FIRE};
+int selectableBurstAmount[3]    = {1,           3,          -1};
+int max_fire_rates[3]           = {15,          15,         15};
+bool use_idle[3]                = {false,       false,      false};
 
 // anything needed to do on boot
 void inital_setup() {}       
@@ -24,11 +33,15 @@ bool blaster_teardown(){
 }
 
 void blaster_background_task() {
-
-
-    if (rev_trigger_reading) {
-        run_driver(flywheel_driver, 255);
+    if (selectorPosition == SAFE) {
+        stop_driver(flywheel_driver);
+        flywheelsSpinning = false;
+    } else if (rev_trigger_reading) {
+        run_driver(flywheel_driver, flywheel_speed);
         flywheelsSpinning = true;
+    } else if (use_idle[selectedFireMode]){
+        run_driver(flywheel_driver, flywheel_idle_speed);
+        flywheelsSpinning = false;
     } else {
         stop_driver(flywheel_driver);
         flywheelsSpinning = false;
@@ -39,9 +52,9 @@ void fire(){
     static unsigned long startTime = 0;
     static unsigned long tinmeoutTimmer = 0;
     if (!flywheelsSpinning) {
-        run_driver(flywheel_driver, 255);
+        run_driver(flywheel_driver, flywheel_speed);
         flywheelsSpinning = true;
-        delay(200);
+        delay(500);
     }
     startTime = millis();
 
@@ -75,7 +88,7 @@ void fire(){
     stop_driver(pusher_driver);
 
     // insure fire rate
-    int minLoopTimeMs = 1000/maxFireRate;
+    int minLoopTimeMs = 1000/max_fire_rates[selectedFireMode];
     int neededDelay = minLoopTimeMs - (millis() - startTime);
     Serial.println(neededDelay);
     if (neededDelay > 0) {
