@@ -2,31 +2,24 @@
 #define FIRE_CONTROL_cpp
 
 #include <Arduino.h>
-#include <DigitalIO.h>
-
-/*
-#include <SPI.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-*/
+#include <Adafruit_MCP23X08.h>
 
 #include "FireControl.h"
 
 #include "FlyCore_Flywheeler.h"
 
-const char version[6] = "V0.1";
+const char version[6] = "V0.3";
 
 // quick accesses settings
 #define DEBUG_MODE true
-
-// Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 // tracking
 int currentTriggerState = 0;
 int switch_1_reading = 0;
 int switch_2_reading = 0;
 int switch_3_reading = 0;
+int switch_4_reading = 0;
+int switch_5_reading = 0;
 
 // User Settings
 
@@ -34,39 +27,44 @@ int switch_3_reading = 0;
 // firemode
 selector_positions selectorPosition = SAFE;
 int selectedFireMode = 1;
-  
-//digital pins
-DigitalPin<SWITCH_1> switch1Pin;
-DigitalPin<SWITCH_2> switch2Pin;
-DigitalPin<SWITCH_3> switch3Pin;
-DigitalPin<SELECTOR_SWITCH_1> selectorSwitch1Pin;
-DigitalPin<SELECTOR_SWITCH_2> selectorSwitch2Pin;
-DigitalPin<SELECTOR_SWITCH_3> selectorSwitch3Pin;
-DigitalPin<SELECTOR_SWITCH_4> selectorSwitch4Pin;
+
+// objects
+Adafruit_MCP23X08 io_expander = Adafruit_MCP23X08();
+
 
 void setup() {
-  // inputs
-  switch1Pin.mode(INPUT_PULLUP);
-  switch2Pin.mode(INPUT_PULLUP);
-  switch3Pin.mode(INPUT_PULLUP);
-  selectorSwitch1Pin.mode(INPUT_PULLUP);
-  selectorSwitch2Pin.mode(INPUT_PULLUP);
-  selectorSwitch3Pin.mode(INPUT_PULLUP);
-  selectorSwitch4Pin.mode(INPUT_PULLUP);
-  // outputs
-  pinMode(DRIVER_1_ACCELERATE, OUTPUT);
-  digitalWrite(DRIVER_1_ACCELERATE, LOW);  // Turn off motor
-  pinMode(DRIVER_1_BRAKE, OUTPUT);
-  digitalWrite(DRIVER_1_BRAKE, LOW);  // turn off brake
+  // IO Expander
+  if (!io_expander.begin_I2C()) {
+    Serial.println("Error.");
+    while (1);
+  }
 
-  pinMode(DRIVER_2_ACCELERATE, OUTPUT);
-  digitalWrite(DRIVER_2_ACCELERATE, LOW);  // Turn off motor
-  pinMode(DRIVER_2_BRAKE, OUTPUT);
-  digitalWrite(DRIVER_2_BRAKE, LOW);  // turn off brake
+  // inputs
+  io_expander.pinMode(SWITCH1, INPUT_PULLUP);
+  io_expander.pinMode(SWITCH2, INPUT_PULLUP);
+  io_expander.pinMode(SWITCH3, INPUT_PULLUP);
+  io_expander.pinMode(SWITCH4, INPUT_PULLUP);
+  io_expander.pinMode(SWITCH5, INPUT_PULLUP);
+  io_expander.pinMode(SELECTOR1, INPUT_PULLUP);
+  io_expander.pinMode(SELECTOR2, INPUT_PULLUP);
+  io_expander.pinMode(SELECTOR3, INPUT_PULLUP);
+
+  // outputs
+  pinMode(MOTOR1_IN1, OUTPUT);
+  digitalWrite(MOTOR1_IN1, LOW);
+  pinMode(MOTOR1_IN2, OUTPUT);
+  digitalWrite(MOTOR1_IN2, LOW);
+
+  pinMode(MOTOR2_IN1, OUTPUT);
+  digitalWrite(MOTOR2_IN1, LOW);
+  pinMode(MOTOR2_IN2, OUTPUT);
+  digitalWrite(MOTOR2_IN2, LOW);
 
   Serial.begin(9600); // initialize serial communication:
 
   inital_setup();
+  while (!Serial);
+  Serial.println("Running");
 }
 
 void loop() {
@@ -123,30 +121,22 @@ void loop() {
 }
 
 void read_switchs(){
-  /*
-  Serial.print(!switch1Pin);
-  Serial.print(": ");
-  Serial.print(!switch2Pin);
-  Serial.print(": ");
-  Serial.println(!switch3Pin);
-  */
-
-  switch_1_reading = !switch1Pin;
-  switch_2_reading = !switch2Pin;
-  switch_3_reading = !switch3Pin;
+  switch_1_reading = !io_expander.digitalRead(SWITCH1);
+  switch_2_reading = !io_expander.digitalRead(SWITCH2);
+  switch_3_reading = !io_expander.digitalRead(SWITCH3);
+  switch_4_reading = !io_expander.digitalRead(SWITCH4);
+  switch_5_reading = !io_expander.digitalRead(SWITCH5);
 }
 
-void read_selector() {
-  if (!selectorSwitch1Pin) {  // safe
-    selectorPosition = SAFE;
-  } else if (!selectorSwitch2Pin) { 
+void read_selector() {  // TODO Needed updated
+  if (!io_expander.digitalRead(SELECTOR1)) { 
     selectorPosition = POS_1;
-  } else if (!selectorSwitch3Pin) {
+  } else if (!io_expander.digitalRead(SELECTOR2)) {
     selectorPosition = POS_2;
-  } else if (!selectorSwitch4Pin) {
+  } else if (!io_expander.digitalRead(SELECTOR3)) {
     selectorPosition = POS_3;
   } else {
-    selectorPosition = INVALID;
+    selectorPosition = SAFE;
   }
 }
 
@@ -158,7 +148,7 @@ void update_trigger_state() {
   const unsigned long triggerDebounceTime = 2;
   static unsigned long lastTriggerDebounce = 0;
   static int lastTriggerState = 0;
-  int reading = !trigger_pin;
+  int reading = !io_expander.digitalRead(TRIGGER);
   if (reading != lastTriggerState) {
     lastTriggerDebounce = millis();
     lastTriggerState = reading;
@@ -168,6 +158,70 @@ void update_trigger_state() {
   }
 }
 
+void driver_coast(int driver) {
+  int in1, in2;
+  if (driver == 1){
+    in1 = MOTOR1_IN1;
+    in2 = MOTOR1_IN2;
+  } else if (driver == 2){
+    in1 = MOTOR2_IN1;
+    in2 = MOTOR2_IN2;
+  } else {
+    return;
+  }
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+}
+
+void driver_reverse(int driver, int speed = 255) {
+  int in1, in2;
+  if (driver == 1){
+    in1 = MOTOR1_IN1;
+    in2 = MOTOR1_IN2;
+  } else if (driver == 2){
+    in1 = MOTOR2_IN1;
+    in2 = MOTOR2_IN2;
+  } else {
+    return;
+  }
+  // Speed options not avalible on current board version
+  // TODO fix that
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+}
+
+void driver_forward(int driver, int speed = 255) {
+  int in1, in2;
+  if (driver == 1){
+    in1 = MOTOR1_IN1;
+    in2 = MOTOR1_IN2;
+  } else if (driver == 2){
+    in1 = MOTOR2_IN1;
+    in2 = MOTOR2_IN2;
+  } else {
+    return;
+  }
+  analogWrite(in1, speed);
+  digitalWrite(in2, LOW);
+}
+
+void driver_brake(int driver) {
+  int in1, in2;
+  if (driver == 1){
+    in1 = MOTOR1_IN1;
+    in2 = MOTOR1_IN2;
+  } else if (driver == 2){
+    in1 = MOTOR2_IN1;
+    in2 = MOTOR2_IN2;
+  } else {
+    return;
+  }
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, HIGH);
+}
+
+
+/*
 // Run motor at full speed
 void full_speed_driver(int driver) {
   run_driver(driver, 255);
@@ -224,6 +278,6 @@ void test_driver_2() {
   delay(1000);
   full_speed_driver(2);
   delay(1000);
-}
+}*/
 
 #endif

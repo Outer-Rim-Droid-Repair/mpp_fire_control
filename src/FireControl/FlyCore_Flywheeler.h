@@ -5,10 +5,12 @@
 #include "FireControl.h"
 
 // required defines
-#define trigger_pin switch2Pin
+#define TRIGGER SWITCH2
 
+/*
 #define DRIVER_1_USING_BRAKE true
 #define DRIVER_2_USING_BRAKE false
+*/
 
 // type specific defines
 #define rev_trigger_reading switch_1_reading

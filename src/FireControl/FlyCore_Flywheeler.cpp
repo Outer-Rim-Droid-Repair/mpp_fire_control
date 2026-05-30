@@ -2,7 +2,6 @@
 #define BLASTER_SETUP_cpp
 
 #include <Arduino.h>
-#include <DigitalIO.h>
 
 //#include "FireControl.h"
 #include "FlyCore_Flywheeler.h"
@@ -34,16 +33,16 @@ bool blaster_teardown(){
 
 void blaster_background_task() {
     if (selectorPosition == SAFE) {
-        stop_driver(flywheel_driver);
+        driver_coast(flywheel_driver);
         flywheelsSpinning = false;
     } else if (rev_trigger_reading) {
-        run_driver(flywheel_driver, flywheel_speed);
+        driver_forward(flywheel_driver, flywheel_speed);
         flywheelsSpinning = true;
     } else if (use_idle[selectedFireMode]){
-        run_driver(flywheel_driver, flywheel_idle_speed);
+        driver_forward(flywheel_driver, flywheel_idle_speed);
         flywheelsSpinning = false;
     } else {
-        stop_driver(flywheel_driver);
+        driver_coast(flywheel_driver);
         flywheelsSpinning = false;
     }
 }
@@ -52,7 +51,7 @@ void fire(){
     static unsigned long startTime = 0;
     static unsigned long tinmeoutTimmer = 0;
     if (!flywheelsSpinning) {
-        run_driver(flywheel_driver, flywheel_speed);
+        driver_forward(flywheel_driver, flywheel_speed);
         flywheelsSpinning = true;
         delay(500);
     }
@@ -60,13 +59,13 @@ void fire(){
 
     Serial.println("fire");
 
-    full_speed_driver(pusher_driver);
+    driver_forward(pusher_driver);
 
     // leave rear switch
     tinmeoutTimmer = millis();
     while(pusher_switch_reading){
         if ((millis() - tinmeoutTimmer) > PUSHER_TIME_OUT) {
-            stop_driver(pusher_driver);
+            driver_brake(pusher_driver);
             Serial.println("ERROR: Timeout in run motor");
             return;
         }
@@ -78,14 +77,14 @@ void fire(){
     tinmeoutTimmer = millis();
     while(!pusher_switch_reading){
         if ((millis() - tinmeoutTimmer) > PUSHER_TIME_OUT) {
-            stop_driver(pusher_driver);
+            driver_brake(pusher_driver);
             Serial.println("ERROR: Timeout in run motor");
             return;
         }
         delay(1);
         read_switchs();
     }
-    stop_driver(pusher_driver);
+    driver_brake(pusher_driver);
 
     // insure fire rate
     int minLoopTimeMs = 1000/max_fire_rates[selectedFireMode];
