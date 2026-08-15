@@ -4,50 +4,33 @@
 #include "FireControlStructsEnums.h"
 
 // ----------- General controlboard -----------
-// ========= Real Pins =========
+// =========== Real Pins ===========
 // Motor Pins
-#define MOTOR1_IN1 9
-#define MOTOR1_IN2 8
+#define DRIVER_BI_IN1 9
+#define DRIVER_BI_IN2 10
 
-#define MOTOR2_IN1 10
-#define MOTOR2_IN2 16
+#define DRIVER_HIGH_IN 6
 
+// Other Pins
 #define SENSOR1 A0
 #define SENSOR2 A1
 
+#define BUZZER_Pin 5 
 
-// ========= Virtual Pins =========
+
+// =========== Virtual Pins ===========
 // IO Expander Pin Number
-#define SWITCH1 8  
-#define SWITCH2 7  
-#define SWITCH3 6 
-#define SWITCH4 5 
-#define SWITCH5 4
+#define SWITCH1 0  
+#define SWITCH2 1  
+#define SWITCH3 2 
+#define SWITCH4 3 
 
-#define SELECTOR1 3
-#define SELECTOR2 2
-#define SELECTOR3 1
+#define SELECTOR1 7
+#define SELECTOR2 6
+#define SELECTOR3 5
+#define SELECTOR4 4
 
-/*
-// input pins
-#define SWITCH_1 14
-#define SWITCH_2 16
-#define SWITCH_3 10  
-#define SELECTOR_SWITCH_1 2
-#define SELECTOR_SWITCH_2 3
-#define SELECTOR_SWITCH_3 4
-#define SELECTOR_SWITCH_4 5
-
-// output pins
-#define DRIVER_1_ACCELERATE 8
-#define DRIVER_1_BRAKE 9
-#define DRIVER_2_ACCELERATE 6
-#define DRIVER_2_BRAKE 7
-*/
-
-#define SAFETY_SELECTOR_VALUE 1
-
-//enums
+// ----------- enums -----------
 enum selector_positions {
     SAFE = -1,
     POS_1 = 0,
@@ -56,13 +39,19 @@ enum selector_positions {
     INVALID = -2
 };
 
-// tracking
+enum driver_direction {
+    COAST = 0,
+    FORWARD = 1,
+    BACKWARDS = 0,
+    BRAKE = -10
+};
+
+// ----------- tracking -----------
 extern int currentTriggerState;
 extern int switch_1_reading;
 extern int switch_2_reading;
 extern int switch_3_reading;
 extern int switch_4_reading;
-extern int switch_5_reading;
 
 extern selector_positions selectorPosition;
 extern int selectedFireMode;
@@ -70,28 +59,20 @@ extern fireMode selectableFireModes[3];
 extern int selectableBurstAmount[3];
 
 
-// User Settings
-extern int maxFireRate;
+// ----------- User Settings -----------
 
-// functions
+// ----------- Functions -----------
 void read_switchs();
 void read_selector();
 void update_trigger_state();
 
-// Motor Functions 
-void driver_coast(int driver);
-void driver_reverse(int driver, int speed = 255);
-void driver_forward(int driver, int speed = 255);
-void driver_brake(int driver);
+void error_tone(int times_to_play);
 
+// =========== Motor Functions ===========
+void bidirection_driver_move(driver_direction action, int speed = 0);
+void high_current_driver_move(driver_direction action, int speed = 0);
 
-/*
-void full_speed_driver(int driver);
-void stop_driver(int driver);
-void run_driver(int driver, int speed);
-*/
-
-
-
+// =========== Debug Functions ===========
+void print_states();
 
 #endif

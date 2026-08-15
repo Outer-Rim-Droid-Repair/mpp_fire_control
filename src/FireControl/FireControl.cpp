@@ -12,6 +12,7 @@ const char version[6] = "V0.3";
 
 // quick accesses settings
 #define DEBUG_MODE true
+#define DEBUG_PERIOD 0.1  // Time in seconds between debug messages
 
 // tracking
 int currentTriggerState = 0;
@@ -44,26 +45,24 @@ void setup() {
   io_expander.pinMode(SWITCH2, INPUT_PULLUP);
   io_expander.pinMode(SWITCH3, INPUT_PULLUP);
   io_expander.pinMode(SWITCH4, INPUT_PULLUP);
-  io_expander.pinMode(SWITCH5, INPUT_PULLUP);
   io_expander.pinMode(SELECTOR1, INPUT_PULLUP);
   io_expander.pinMode(SELECTOR2, INPUT_PULLUP);
   io_expander.pinMode(SELECTOR3, INPUT_PULLUP);
+  io_expander.pinMode(SELECTOR4, INPUT_PULLUP);
 
   // outputs
-  pinMode(MOTOR1_IN1, OUTPUT);
-  digitalWrite(MOTOR1_IN1, LOW);
-  pinMode(MOTOR1_IN2, OUTPUT);
-  digitalWrite(MOTOR1_IN2, LOW);
+  pinMode(DRIVER_BI_IN1, OUTPUT);
+  pinMode(DRIVER_BI_IN2, OUTPUT);
+  bidirection_driver_move(COAST);
 
-  pinMode(MOTOR2_IN1, OUTPUT);
-  digitalWrite(MOTOR2_IN1, LOW);
-  pinMode(MOTOR2_IN2, OUTPUT);
-  digitalWrite(MOTOR2_IN2, LOW);
+  pinMode(DRIVER_HIGH_IN, OUTPUT);
+  high_current_driver_move(COAST);
 
   Serial.begin(9600); // initialize serial communication:
 
   inital_setup();
-  while (!Serial);
+  //while (!Serial);
+  delay(1000);
   Serial.println("Running");
 }
 
@@ -71,26 +70,27 @@ void loop() {
   static bool blasterSetup = false;     // setup completion flag
   static bool triggerReleased = true;   // Has the trigger been released after the last shot. Used to force trigger release when needed
   static int burstCount = 0;            // How many shots have been fired 
-  // static long lastDevMessage = 0;       // for timing debug messages
+  static long lastDevMessage = 0;       // for timing debug messages
+  static unsigned long nextFireTime = 0;
 
   read_selector();
   update_trigger_state();
   read_switchs();
-  /*
-  Serial.print(rev_trigger_reading);
-  Serial.print(": ");
-  Serial.print(switch_3_reading);
-  Serial.print(": ");
-  Serial.print(!switch3Pin);
-  Serial.print(": ");
-  Serial.println(selectorPosition);*/
+
+  if (DEBUG_MODE) {
+    if (millis() - lastDevMessage >= DEBUG_PERIOD*1000UL) {
+      lastDevMessage = millis();      // Update timer
+      print_states();
+    }
+  }
 
   blaster_background_task();
 
-  if (!currentTriggerState) {
+  if (!currentTriggerState) {  // Check if trigger has been released
     triggerReleased = true;
     burstCount = 0;
   }
+  
   if (selectorPosition == SAFE) { // safty is on
     if (currentTriggerState and !blasterSetup and triggerReleased) {  // do initial setup
       triggerReleased = false;  // Require the trigger to be released
@@ -98,25 +98,29 @@ void loop() {
     } else if (currentTriggerState) { // deprime
       blasterSetup = !blaster_teardown();
     }
+  } else if (millis() < nextFireTime) { // wait for fire rate limitor
+    delay(1);
   } else if (currentTriggerState and triggerReleased) {  // fire next dart
+    static unsigned int neededFireDelay;
     // if blaster not set up pullingthe trigger will do a similar process
     blasterSetup = true;  // set flag
     switch (selectableFireModes[selectorPosition]) {
       case SINGLE_FIRE:
-        fire();
+        neededFireDelay = fire();
         triggerReleased = false;  // Require the trigger to be released
         break;
       case BURST_FIRE:
-        fire();
+        neededFireDelay = fire();
         burstCount += 1;  // increase fire count
         if (burstCount >= selectableBurstAmount[selectorPosition]) { // once burst limit has been reached
           triggerReleased = false; // Require the trigger to be released
         }
         break;
       case AUTO_FIRE:
-        fire();
+        neededFireDelay = fire();
         break;
     }
+    nextFireTime = millis() + neededFireDelay;
   }
 }
 
@@ -125,18 +129,19 @@ void read_switchs(){
   switch_2_reading = !io_expander.digitalRead(SWITCH2);
   switch_3_reading = !io_expander.digitalRead(SWITCH3);
   switch_4_reading = !io_expander.digitalRead(SWITCH4);
-  switch_5_reading = !io_expander.digitalRead(SWITCH5);
 }
 
 void read_selector() {  // TODO Needed updated
   if (!io_expander.digitalRead(SELECTOR1)) { 
-    selectorPosition = POS_1;
+    selectorPosition = SAFE;
   } else if (!io_expander.digitalRead(SELECTOR2)) {
-    selectorPosition = POS_2;
+    selectorPosition = POS_1;
   } else if (!io_expander.digitalRead(SELECTOR3)) {
+    selectorPosition = POS_2;
+  } else if (!io_expander.digitalRead(SELECTOR4)) {
     selectorPosition = POS_3;
   } else {
-    selectorPosition = SAFE;
+    selectorPosition = INVALID;
   }
 }
 
@@ -158,126 +163,61 @@ void update_trigger_state() {
   }
 }
 
-void driver_coast(int driver) {
-  int in1, in2;
-  if (driver == 1){
-    in1 = MOTOR1_IN1;
-    in2 = MOTOR1_IN2;
-  } else if (driver == 2){
-    in1 = MOTOR2_IN1;
-    in2 = MOTOR2_IN2;
-  } else {
-    return;
+void bidirection_driver_move(driver_direction action, int speed) {
+  if (action == COAST){
+    digitalWrite(DRIVER_BI_IN1, LOW);
+    digitalWrite(DRIVER_BI_IN2, LOW);
+  } else if (action == FORWARD) {
+    digitalWrite(DRIVER_BI_IN2, LOW);  // do 2 low first toavoid accadently going into brake
+    analogWrite(DRIVER_BI_IN1, speed);
+  } else if (action == BACKWARDS) {
+    digitalWrite(DRIVER_BI_IN1, LOW);
+    analogWrite(DRIVER_BI_IN2, speed);
+  } else if (action == BRAKE) {
+    digitalWrite(DRIVER_BI_IN1, HIGH);
+    digitalWrite(DRIVER_BI_IN2, HIGH);
   }
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
 }
 
-void driver_reverse(int driver, int speed = 255) {
-  int in1, in2;
-  if (driver == 1){
-    in1 = MOTOR1_IN1;
-    in2 = MOTOR1_IN2;
-  } else if (driver == 2){
-    in1 = MOTOR2_IN1;
-    in2 = MOTOR2_IN2;
-  } else {
-    return;
+void high_current_driver_move(driver_direction action, int speed) {
+  if (action == COAST || action == BRAKE){
+    digitalWrite(DRIVER_HIGH_IN, LOW);
+  } else if (action == FORWARD) {
+    analogWrite(DRIVER_HIGH_IN, speed);
   }
-  // Speed options not avalible on current board version
-  // TODO fix that
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
 }
 
-void driver_forward(int driver, int speed = 255) {
-  int in1, in2;
-  if (driver == 1){
-    in1 = MOTOR1_IN1;
-    in2 = MOTOR1_IN2;
-  } else if (driver == 2){
-    in1 = MOTOR2_IN1;
-    in2 = MOTOR2_IN2;
-  } else {
-    return;
+void error_tone(int times_to_play) {
+  for (int i = 0; i < times_to_play; i++) {
+    tone(BUZZER_Pin, 440, 200);
+    delay(100);
+    noTone(BUZZER_Pin);
+    delay(100);
   }
-  analogWrite(in1, speed);
-  digitalWrite(in2, LOW);
 }
 
-void driver_brake(int driver) {
-  int in1, in2;
-  if (driver == 1){
-    in1 = MOTOR1_IN1;
-    in2 = MOTOR1_IN2;
-  } else if (driver == 2){
-    in1 = MOTOR2_IN1;
-    in2 = MOTOR2_IN2;
-  } else {
-    return;
-  }
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, HIGH);
+// power_on_tone
+// setup_tone
+// reset_tone
+
+
+void print_states() {
+  Serial.print(switch_1_reading);
+  Serial.print(": ");
+  Serial.print(switch_2_reading);
+  Serial.print(": ");
+  Serial.print(switch_3_reading);
+  Serial.print(": ");
+  Serial.print(": ");
+  Serial.print(!io_expander.digitalRead(SELECTOR1));
+  Serial.print(": ");
+  Serial.print(!io_expander.digitalRead(SELECTOR2));
+  Serial.print(": ");
+  Serial.print(!io_expander.digitalRead(SELECTOR3));
+  Serial.print(": ");
+  Serial.print(!io_expander.digitalRead(SELECTOR4));
+  Serial.print(": ");
+  Serial.println(selectorPosition);
 }
-
-
-/*
-// Run motor at full speed
-void full_speed_driver(int driver) {
-  run_driver(driver, 255);
-}
-
-void stop_driver(int driver) {
-  run_driver(driver, 0);
-}
-
-void run_driver(int driver, int speed) {
-  bool using_brake;
-  int brake_pin;
-  int drive_pin;
-
-  if (driver == 1){
-    using_brake = DRIVER_1_USING_BRAKE;
-    brake_pin = DRIVER_1_BRAKE;
-    drive_pin = DRIVER_1_ACCELERATE;
-  } else if (driver == 2){
-    using_brake = DRIVER_2_USING_BRAKE;
-    brake_pin = DRIVER_2_BRAKE;
-    drive_pin = DRIVER_2_ACCELERATE;
-  }
-  else {
-    return;
-  }
-  if (speed == 0){
-    digitalWrite(drive_pin, LOW);
-    if (using_brake) {
-      digitalWrite(brake_pin, HIGH);  // brake off
-      delay(1);
-    }
-  } else {
-    if (using_brake) {
-      digitalWrite(brake_pin, LOW);  // brake off
-      delay(1);
-    }
-    analogWrite(drive_pin, speed);
-  }
-
-  
-}
-
-// test functions
-void test_driver_1() {
-  full_speed_driver(1);
-  delay(1000);
-  full_speed_driver(1);
-  delay(1000);
-}
-
-void test_driver_2() {
-  full_speed_driver(2);
-  delay(1000);
-  full_speed_driver(2);
-  delay(1000);
-}*/
 
 #endif
