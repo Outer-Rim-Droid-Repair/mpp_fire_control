@@ -3,62 +3,76 @@
 
 #include "FireControlStructsEnums.h"
 
-// input pins
-#define TRIGGER_PIN_NUMBER 19
-#define BREACH_PIN_NUMBER 18
-#define PLUNGER_PIN_NUMBER 20   
-#define SAFETY_PIN_NUMBER 12
-#define FIRE_SELECT_PIN_1_NUMBER 21
-#define FIRE_SELECT_PIN_2_NUMBER 22
-// output pins
-#define MOTOR_PIN 11
+// ----------- General controlboard -----------
+// =========== Real Pins ===========
+// Motor Pins
+#define DRIVER_BI_IN1 9
+#define DRIVER_BI_IN2 10
 
-// input high speed pins
-DigitalPin<TRIGGER_PIN_NUMBER> tiggerPin;
-DigitalPin<BREACH_PIN_NUMBER> breachPin;
-DigitalPin<PLUNGER_PIN_NUMBER> plungerPin;
-DigitalPin<SAFETY_PIN_NUMBER> safetyPin;
-DigitalPin<FIRE_SELECT_PIN_1_NUMBER> FireModePin1;
-DigitalPin<FIRE_SELECT_PIN_2_NUMBER> FireModePin2;
+#define DRIVER_HIGH_IN 6
 
-// tracking
-volatile int currentTriggerState = LOW;           // Is the trigger pulled? High: pulled, LOW: released           
-int lastTriggerState = LOW;                       // History of currentTriggerState 
-volatile int currentSensorState = CLOSED_BREACH;  // Internal fire sensors read. Default to CLOSED_BREACH as this should be power down state
-volatile int safetyState = LOW;                   // Is the Safty Enabled? High: Enabled, LOW: Disabled  
-firingStates nextState;                                 // Firing State machine state. 
+// Other Pins
+#define SENSOR1 A0
+#define SENSOR2 A1
 
-// User controlled settings.
-idleMode idlePossition = PRIMED_IDLE;             // where should the firing cycle end?
-// Could make this a by mode option. i.e. user could select burst 2 and burst 4 as their fire modes
-int maxDPS = 5;                                  // limit on number of darts per second
-
-// firemode
-int selectedFireMode;
-fireMode selectableFireModes[3] = {SINGLE_FIRE, BURST_FIRE, AUTO_FIRE};
-int selectableBurstAmount[3] = {1, 3, -1};
+#define BUZZER_Pin 5 
 
 
-// functions
-void fire();
-void fireStateMachine();
-bool waitTillSensorChange(int initial_state);
-void _getAllSensorStatesBut(int *list, int state);
-bool waitTillSensorChangeToValue(int target_state);
-bool waitTillSensorChangeToValue(int target_states[], int length);
-bool isValueInList(int value, int list[], int length);
-void run_motor();
-void stop_motor();
-void update_sensor_state();
+// =========== Virtual Pins ===========
+// IO Expander Pin Number
+#define SWITCH1 0  
+#define SWITCH2 1  
+#define SWITCH3 2 
+#define SWITCH4 3 
+
+#define SELECTOR1 7
+#define SELECTOR2 6
+#define SELECTOR3 5
+#define SELECTOR4 4
+
+// ----------- enums -----------
+enum selector_positions {
+    SAFE = -1,
+    POS_1 = 0,
+    POS_2 = 1,
+    POS_3 = 2,
+    INVALID = -2
+};
+
+enum driver_direction {
+    COAST = 0,
+    FORWARD = 1,
+    BACKWARDS = 0,
+    BRAKE = -10
+};
+
+// ----------- tracking -----------
+extern int currentTriggerState;
+extern int switch_1_reading;
+extern int switch_2_reading;
+extern int switch_3_reading;
+extern int switch_4_reading;
+
+extern selector_positions selectorPosition;
+extern int selectedFireMode;
+extern fireMode selectableFireModes[3];
+extern int selectableBurstAmount[3];
+
+
+// ----------- User Settings -----------
+
+// ----------- Functions -----------
+void read_switchs();
+void read_selector();
 void update_trigger_state();
-void update_safety_state();
-void update_fire_mode();
 
-void fillStatus();
-void fillIdentifier();
-void setSettings();
-void fillSettings();
+void error_tone(int times_to_play);
 
-void dev_write_serial_all_states();
+// =========== Motor Functions ===========
+void bidirection_driver_move(driver_direction action, int speed = 0);
+void high_current_driver_move(driver_direction action, int speed = 0);
+
+// =========== Debug Functions ===========
+void print_states();
 
 #endif

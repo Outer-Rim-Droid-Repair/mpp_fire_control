@@ -5,6 +5,7 @@
 #include "Wire.h"
 
 
+
 const byte CONTROLLER_ADDRESS = 8;
 const byte POWER_DISTRO_BOARD_ADDRESS = 9;
 const byte FIRE_CONTROL_BOARD_ADDRESS = 10;
@@ -13,8 +14,9 @@ const byte CHRONO_BOARD_ADDRESS = 11;
 
 struct IdentifyStatusStruct {
 	char version[6];		//  6
+	int blaster_type;		//  2
 	bool heartbeat;			//  1
-	byte padding[25];		// 25
+	byte padding[23];		// 23
                             //------
     // total                // 32
 };
@@ -57,11 +59,13 @@ struct fireControlSettingsStruct {  // TODO figure out how to handdle changin po
 	int maxFireRate;			//  2
 	int selectableFireModes[3]; //  6
 	int selectableBurstAmounts[3];// 6
-	int idlePossition;			//  2  // TODO figure out how to not have that as a raw int
+	int selectablemaxFireRates[3];// 6
+	bool selectableUseIdle[3];	//  3
+	int idlePossitionLevel;	//  2  // TODO figure out how to not have that as a raw int
 	bool heartbeat;				//  1  // TODO reorder based on size
-	byte padding[1];      		//  1
+	byte padding[3];      		//  6
   								//------
-  	// total                	//  16
+  	// total                	//  32
 };
 
 struct chronoStatusStruct {
@@ -92,7 +96,8 @@ enum mode {
 	IDENTIFY,	// to check if a device is in the network
 	STATUS,		// to get a status form the device
 	GET_SETTINGS,	// to get the settings from the module
-	SET_SETTINGS	// to put the unit in a mode to accept new settings
+	SET_SETTINGS,	// to put the unit in a mode to accept new settings
+	RESET  // Set the unit to a clean state
 };
 
 struct SendMessageStruct {
@@ -102,10 +107,6 @@ struct SendMessageStruct {
 	// total                // 16
 };
 
-
-
-//void staticOnReceiveHandler(int numBytesReceived);
-//void staticOnRequestHandler(int numBytesReceived);
 
 class MEDIC {
 	public:
@@ -148,6 +149,8 @@ class MEDIC_CONNTROLLER: public MEDIC {
 	void setPowerSettings();
     void setFireControlSettings();
     void setChronoSettings();
+
+	void resetUnit(int targetAddress);
 	
 	IdentifyStatusStruct identifyStatus;
 
@@ -173,6 +176,7 @@ class MEDIC_RECEIVER: public MEDIC {
 		void connectOnRequestStatusFunction(void (*funct)());
 		void connectOnRequestIdentifyFunction(void (*funct)());
 		void connectOnRequestSettingsFunction(void (*funct)());
+		void connectOnResetFunction(void (*funct)());
 		
 		virtual void onReceiveHandler(int numBytesReceived);
 		virtual void onRequestHandler();
@@ -186,6 +190,7 @@ class MEDIC_RECEIVER: public MEDIC {
 		void(*_onRequestStatusFunction)();
 		void(*_onRequestIdentifyFunction)();
 		void(*_onRequestSettingsFunction)();
+		void(*_onResetFunction)();
 };
 
 class MEDIC_POWER_BOARD_RECEIVER: public MEDIC_RECEIVER {
