@@ -6,12 +6,12 @@
 
 #include "FireControl.h"
 
-#include "FlyCore_Flywheeler.h"
+#include "AEG.h"
 
 const char version[6] = "V0.3";
 
 // quick accesses settings
-#define DEBUG_MODE true
+#define DEBUG_MODE false
 #define DEBUG_PERIOD 0.1  // Time in seconds between debug messages
 
 // tracking
